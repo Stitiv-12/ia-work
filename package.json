@@ -42,9 +42,13 @@
 		"vite": "^8.0.7"
 	},
 	"dependencies": {
+		"@ai-sdk/anthropic": "^3.0.81",
+		"@ai-sdk/google": "^3.0.80",
 		"@ai-sdk/openai": "^3.0.64",
 		"@ai-sdk/svelte": "^4.0.187",
-		"ai": "^6.0.187",
+		"@composio/core": "^0.10.0",
+		"@composio/vercel": "^0.9.2",
+		"ai": "^6.0.196",
 		"better-sqlite3": "^12.10.0",
 		"marked": "^18.0.4",
 		"sqlite-vec": "^0.1.9",

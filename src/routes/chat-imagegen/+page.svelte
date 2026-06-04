@@ -28,7 +28,6 @@
 </header>
 
 <main>
-
 	<details>
 		<summary>Messages</summary>
 		<pre>{JSON.stringify(chat.messages, null, 2)}</pre>
@@ -47,6 +46,8 @@
 						{:else}
 							<span>Generating image…</span>
 						{/if}
+					{:else}
+						<pre>{JSON.stringify(part, null, 2)}</pre>
 					{/if}
 				{/each}
 			</li>
