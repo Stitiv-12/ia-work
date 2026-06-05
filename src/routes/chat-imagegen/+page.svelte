@@ -46,8 +46,6 @@
 						{:else}
 							<span>Generating image…</span>
 						{/if}
-					{:else}
-						<pre>{JSON.stringify(part, null, 2)}</pre>
 					{/if}
 				{/each}
 			</li>
