@@ -25,6 +25,7 @@ function readMessages(): Message[] {
 	const { cookies } = getRequestEvent();
 	const raw = cookies.get(COOKIE_NAME);
 	return raw ? (JSON.parse(raw) as Message[]) : [];
+	return [];
 }
 
 function writeMessages(messages: Message[]) {

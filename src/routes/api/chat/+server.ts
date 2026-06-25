@@ -1,77 +1,44 @@
-import {
-	streamText,
-	smoothStream,
-	convertToModelMessages,
-	stepCountIs,
-	type UIMessage,
-	tool
-} from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, type InferUITools, type UIMessage } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { PRIVATE_OPENAI_API_KEY, FIRST_NAME } from '$env/static/private';
-import { z } from 'zod';
+import { PRIVATE_GEMINI_API_KEY, PRIVATE_OPENAI_API_KEY, USER_ID, COMPOSIO_API_KEY } from '$env/static/private';
 import type { RequestHandler } from './$types';
+import { Composio } from "@composio/core";
+import { VercelProvider } from "@composio/vercel";
 
-const API_URL = 'https://ecv-2026.vercel.app';
-// const API_URL = 'http://localhost:5174';
-
+const composio = new Composio({ provider: new VercelProvider(), apiKey: COMPOSIO_API_KEY });
+const google = createGoogleGenerativeAI({ apiKey: PRIVATE_GEMINI_API_KEY });
 const openai = createOpenAI({ apiKey: PRIVATE_OPENAI_API_KEY });
 
-const tools = {
-	getPosts: tool({
-		description: 'Read all posts from the social board.',
-		inputSchema: z.object({
-		}),
-		execute: async () => {
-			const res = await fetch(`${API_URL}/api/posts`);
-			return await res.json();
-		}
-	}),
-	createPost: tool({
-		description: `Publish a new post on the social board as ${FIRST_NAME}.`,
-		inputSchema: z.object({
-			content: z.string().describe('Post body (plain text or markdown).')
-		}),
-		execute: async ({ content }) => {
-			const res = await fetch(`${API_URL}/api/posts`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ user: FIRST_NAME, content })
-			});
-			return await res.json();
-		}
-	}),
-	setTheme: tool({
-		description: 'Change the page theme (background and text color).',
-		inputSchema: z.object({
-			background: z
-				.string()
-				.describe('CSS color for the background (hex, rgb, hsl, named color).'),
-			color: z.string().describe('CSS color for the text (hex, rgb, hsl, named color).')
-		}),
-		execute: async ({ background, color }) => {
-			const res = await fetch(`${API_URL}/api/theme`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ background, color })
-			});
-			return await res.json();
-		}
-	})
-};
-
+const session = await composio.create(USER_ID, {
+    toolkits: [
+        "github",
+        "trello"
+    ]
+});
+const tools = await session.tools();
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { messages }: { messages: UIMessage[] } = await request.json();
+    const { messages }: { messages: UIMessage[] } = await request.json();
+    console.log("Hello");
+    // Essayer Gemini d'abord, basculer sur OpenAI si nécessaire
+    let result;
+    //try {
+    result = streamText({
+        model: openai('gpt-4o-mini'),
+        messages: await convertToModelMessages(messages),
+        stopWhen: stepCountIs(15),
+        tools
+    });
+    /* } catch (error) {
+         console.error("Gemini failed, falling back to OpenAI", error);
+         result = streamText({
+             model: openai('gpt-4o-mini'),
+             messages: await convertToModelMessages(messages),
+             stopWhen: stepCountIs(10),
+             tools
+         });
+     }*/
 
-	const result = streamText({
-		model: openai('gpt-5.4-mini'),
-		system: `You are ${FIRST_NAME}'s agent on a small social board. You can read posts and publish new ones on their behalf.`,
-		messages: await convertToModelMessages(messages),
-		tools: tools,
-		stopWhen: stepCountIs(5),
-		// Comment out to stream at full speed.
-		experimental_transform: smoothStream({ delayInMs: 100, chunking: 'word' })
-	});
-
-	return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse();
 };
